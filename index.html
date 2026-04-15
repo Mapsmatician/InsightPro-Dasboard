@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Insight Pro | Interactive Dashboard</title>
+    <!-- CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #3b82f6;
+            --accent-secondary: #10b981;
+            --accent-tertiary: #f59e0b;
+            --accent-quaternary: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --radius: 16px;
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+
+        /* Sidebar - Glassmorphism */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            max-width: 1600px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Upload Section */
+        .upload-card {
+            background: var(--card-bg);
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .upload-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.03);
+            transform: translateY(-2px);
+        }
+
+        .upload-card input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* KPI Section */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .kpi-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .kpi-title {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .kpi-trend {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .trend-up { color: var(--accent-secondary); }
+        .trend-down { color: var(--accent-quaternary); }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-card.full-width {
+            grid-column: span 2;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            min-height: 250px;
+        }
+
+        /* Slicers/Filters in Sidebar */
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        select {
+            background: #1e293b; /* Solid dark background for consistency */
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select option {
+            background-color: #0f172a; /* Dark background for the dropdown list */
+            color: var(--text-primary);
+        }
+
+        select:focus {
+            border-color: var(--accent-primary);
+            background: #1e293b;
+        }
+
+        /* Top 3 Stores Custom KPI */
+        .top-stores-list {
+            list-style: none;
+            margin-top: 0.5rem;
+        }
+
+        .top-store-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .top-store-item:last-child { border-bottom: none; }
+
+        /* Welcome Screen */
+        #welcome-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .welcome-content {
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .welcome-icon {
+            margin-bottom: 2rem;
+            color: var(--accent-primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); }
+            .main-content { margin-left: 0; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .chart-card.full-width { grid-column: span 1; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Welcome Overlay -->
+    <div id="welcome-overlay">
+        <div class="welcome-content">
+            <div class="welcome-icon">
+                <i data-lucide="layout-dashboard" style="width: 64px; height: 64px;"></i>
+            </div>
+            <h1 style="font-family: 'Outfit'; font-size: 2.5rem; margin-bottom: 1rem;">Sales Insight Pro</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2.5rem;">Upload your sales CSV to unlock deep business intelligence and interactive visualizations.</p>
+            
+            <div class="upload-card">
+                <i data-lucide="upload-cloud" style="margin-bottom: 1rem;"></i>
+                <p>Click or drag your dataset here</p>
+                <input type="file" id="csvFileUpload" accept=".csv">
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Supports: .csv | Required Headers: Date, Region, Product, etc.</p>
+            
+            <button id="load-demo-btn" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 500; width: 100%;">
+                ⚡ Load Demo Dataset
+            </button>
+        </div>
+    </div>
+
+    <!-- Sidebar Slicers -->
+    <aside class="sidebar">
+        <div class="logo">
+            <i data-lucide="zap"></i>
+            <span>InsightPro</span>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Filters & Slicers</label>
+            
+            <div class="filter-group">
+                <label class="filter-label">Region</label>
+                <select id="filter-region">
+                    <option value="all">All Regions</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Payment Method</label>
+                <select id="filter-payment">
+                    <option value="all">All Methods</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Store Location</label>
+                <select id="filter-store">
+                    <option value="all">All Stores</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Salesperson</label>
+                <select id="filter-salesperson">
+                    <option value="all">All Staff</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: auto;">
+            <button onclick="location.reload()" style="background: none; border: 1px solid var(--glass-border); color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; width: 100%;">
+                <i data-lucide="rotate-ccw" style="width: 14px;"></i> Reset Dashboard
+            </button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <div class="header-title">
+                <h1>Performance Overview</h1>
+                <p id="dashboard-date-range">Real-time analytical breakdown</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div id="data-status" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-secondary); padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.85rem; display: none; align-items: center; gap: 0.5rem;">
+                    <span style="width: 8px; height: 8px; background: var(--accent-secondary); border-radius: 50%;"></span>
+                    Live Data Active
+                </div>
+                <button id="mini-upload-btn" style="background: var(--accent-primary); border: none; color: white; padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="upload" style="width: 16px;"></i> Upload New
+                </button>
+                <button id="export-report-btn" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-secondary); color: var(--accent-secondary); padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="file-spreadsheet" style="width: 16px;"></i> Excel (.xlsx)
+                </button>
+                <button id="export-csv-btn" style="background: rgba(59, 130, 246, 0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary); padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="file-text" style="width: 16px;"></i> Download CSV
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="dollar-sign" style="width: 14px;"></i> Total Revenue</div>
+                <div class="kpi-value" id="kpi-revenue">$0.00</div>
+                <div class="kpi-trend trend-up"><i data-lucide="trending-up" style="width: 12px;"></i> Visualized Live</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="shopping-bag" style="width: 14px;"></i> Total Orders</div>
+                <div class="kpi-value" id="kpi-orders">0</div>
+                <div class="kpi-trend"><span id="kpi-avg-order">Avg: $0.00</span></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="package" style="width: 14px;"></i> Units Sold</div>
+                <div class="kpi-value" id="kpi-quantity">0</div>
+                <div class="kpi-trend" id="kpi-item-avg">Items per order: 0.0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="refresh-cw" style="width: 14px;"></i> Return Rate</div>
+                <div class="kpi-value" id="kpi-returns">0.0%</div>
+                <div class="kpi-trend trend-down" id="kpi-returned-count">0 Returns total</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="truck" style="width: 14px;"></i> Avg Lead Time</div>
+                <div class="kpi-value" id="kpi-leadtime">0.0 Days</div>
+                <div class="kpi-trend color-text-secondary">Order to Delivery</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title"><i data-lucide="store" style="width: 14px;"></i> Top 3 Stores</div>
+                <div id="kpi-top-stores" class="top-stores-list">
+                    <div class="top-store-item"><span>Pending Upload...</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="charts-grid">
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <div class="chart-title">Sales Revenue Trend</div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 4px; font-size: 0.75rem;">Daily Performance</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Revenue by Region</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Top 10 Products</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="productChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Payment Methods</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="paymentChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Unit Price vs Quantity (Sample)</div>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="analysisChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Global State
+        let rawData = [];
+        let filteredData = [];
+        let charts = {};
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Elements
+        const fileInput = document.getElementById('csvFileUpload');
+        const welcomeOverlay = document.getElementById('welcome-overlay');
+        const miniUploadBtn = document.getElementById('mini-upload-btn');
+
+        // File Upload Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                parseCSV(file);
+            }
+        });
+
+        miniUploadBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = e => parseCSV(e.target.files[0]);
+            input.click();
+        });
+
+        document.getElementById('load-demo-btn').addEventListener('click', loadDemoData);
+        document.getElementById('export-report-btn').addEventListener('click', exportToExcel);
+        document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+
+        function exportToCSV() {
+            if (filteredData.length === 0) {
+                alert("No data available to export. Please upload a file or load demo data.");
+                return;
+            }
+
+            // Prepare data: convert Date objects back to strings for CSV
+            const csvData = filteredData.map(row => ({
+                ...row,
+                Date: row.Date instanceof Date ? row.Date.toISOString().split('T')[0] : row.Date,
+                OrderDate: row.OrderDate instanceof Date ? row.OrderDate.toISOString().split('T')[0] : row.OrderDate,
+                DeliveryDate: row.DeliveryDate instanceof Date ? row.DeliveryDate.toISOString().split('T')[0] : row.DeliveryDate,
+            }));
+
+            const csv = Papa.unparse(csvData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().split('T')[0];
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Sales_Data_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToExcel() {
+            if (filteredData.length === 0) {
+                alert("No data available to export. Please upload a file or load demo data.");
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            // 1. Summary Sheet
+            const revenue = filteredData.reduce((sum, d) => sum + d.TotalPrice, 0);
+            const orders = filteredData.length;
+            const quantity = filteredData.reduce((sum, d) => sum + d.Quantity, 0);
+            const returnedCount = filteredData.filter(d => d.Returned).length;
+            const returnRate = orders > 0 ? (returnedCount / orders) * 100 : 0;
+            
+            const summaryData = [
+                ["Sales Insight Pro - Performance Report", ""],
+                ["Report Date", new Date().toLocaleDateString()],
+                ["", ""],
+                ["Key Performance Indicator", "Value"],
+                ["Total Revenue", revenue],
+                ["Total Orders", orders],
+                ["Units Sold", quantity],
+                ["Return Rate", `${returnRate.toFixed(2)}%`],
+                ["Avg Order Value", orders > 0 ? (revenue / orders) : 0],
+                ["", ""],
+                ["Top 3 Stores", "Sales Value"]
+            ];
+
+            // Add top stores to summary
+            const storeSales = {};
+            filteredData.forEach(d => {
+                storeSales[d.StoreLocation] = (storeSales[d.StoreLocation] || 0) + d.TotalPrice;
+            });
+            const topStores = Object.entries(storeSales).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            topStores.forEach(([name, val]) => summaryData.push([name, val]));
+
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+            // 2. Regional Analysis Sheet
+            const regionSales = {};
+            filteredData.forEach(d => {
+                regionSales[d.Region] = (regionSales[d.Region] || 0) + d.TotalPrice;
+            });
+            const regionalData = [["Region", "Total Sales"]];
+            Object.entries(regionSales).forEach(([region, sales]) => regionalData.push([region, sales]));
+            const wsRegional = XLSX.utils.aoa_to_sheet(regionalData);
+            XLSX.utils.book_append_sheet(wb, wsRegional, "Regional Analysis");
+
+            // 3. Raw Filtered Data
+            // Format dates for Excel
+            const exportRows = filteredData.map(row => ({
+                ...row,
+                Date: row.Date ? row.Date.toLocaleDateString() : '',
+                OrderDate: row.OrderDate ? row.OrderDate.toLocaleDateString() : '',
+                DeliveryDate: row.DeliveryDate ? row.DeliveryDate.toLocaleDateString() : ''
+            }));
+            const wsData = XLSX.utils.json_to_sheet(exportRows);
+            XLSX.utils.book_append_sheet(wb, wsData, "Filtered Data");
+
+            // Save File
+            const timestamp = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Sales_Analysis_Report_${timestamp}.xlsx`);
+        }
+
+        function loadDemoData() {
+            const demoCSV = `Date,Region,Product,Quantity,UnitPrice,StoreLocation,Discount,Salesperson,TotalPrice,PaymentMethod,Returned,ShippingCost,OrderDate,DeliveryDate
+2023-10-01,North,Laptop,1,1200,New York,0,John Doe,1200,Credit Card,false,50,2023-10-01,2023-10-03
+2023-10-01,South,Smartphone,2,800,Atlanta,10,Jane Smith,1590,PayPal,false,20,2023-10-01,2023-10-02
+2023-10-02,East,Tablet,3,400,Boston,5,Bob Wilson,1140,Credit Card,true,15,2023-10-02,2023-10-05
+2023-10-02,West,Headphones,5,150,Seattle,0,Alice Brown,750,Debit Card,false,10,2023-10-02,2023-10-03
+2023-10-03,North,Monitor,2,300,Chicago,20,John Doe,580,Cash,false,30,2023-10-03,2023-10-06
+2023-10-03,South,Smartphone,1,800,Atlanta,0,Jane Smith,800,Credit Card,false,20,2023-10-03,2023-10-04
+2023-10-04,East,Laptop,1,1200,New York,0,John Doe,1200,PayPal,false,50,2023-10-04,2023-10-07
+2023-10-04,West,Tablet,2,400,San Francisco,10,Alice Brown,720,Credit Card,false,15,2023-10-04,2023-10-05
+2023-10-05,North,Headphones,10,150,Chicago,0,Bob Wilson,1500,Debit Card,false,10,2023-10-05,2023-10-06
+2023-10-05,South,Monitor,1,300,Miami,5,Jane Smith,285,Cash,true,30,2023-10-05,2023-10-09`;
+            
+            Papa.parse(demoCSV, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                }
+            });
+        }
+
+        function parseCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processData(results.data);
+                }
+            });
+        }
+
+        function processData(data) {
+            rawData = data;
+            console.log("Processed Data:", rawData[0]);
+            
+            // Basic Data Cleaning & Date Conversion
+            rawData = rawData.map(d => ({
+                ...d,
+                Date: d.Date ? new Date(d.Date) : null,
+                OrderDate: d.OrderDate ? new Date(d.OrderDate) : null,
+                DeliveryDate: d.DeliveryDate ? new Date(d.DeliveryDate) : null,
+                TotalPrice: parseFloat(d.TotalPrice) || 0,
+                Quantity: parseInt(d.Quantity) || 0,
+                Returned: String(d.Returned).toLowerCase() === 'true' || d.Returned === 1
+            }));
+
+            initializeDashboard();
+        }
+
+        function initializeDashboard() {
+            welcomeOverlay.style.opacity = '0';
+            setTimeout(() => welcomeOverlay.style.display = 'none', 500);
+            document.getElementById('data-status').style.display = 'flex';
+
+            populateFilters();
+            applyFilters(); // Initial run
+            setupFilterListeners();
+        }
+
+        function populateFilters() {
+            const regions = [...new Set(rawData.map(d => d.Region))].filter(Boolean);
+            const payments = [...new Set(rawData.map(d => d.PaymentMethod))].filter(Boolean);
+            const stores = [...new Set(rawData.map(d => d.StoreLocation))].filter(Boolean);
+            const staff = [...new Set(rawData.map(d => d.Salesperson))].filter(Boolean);
+
+            updateDropdown('filter-region', regions);
+            updateDropdown('filter-payment', payments);
+            updateDropdown('filter-store', stores);
+            updateDropdown('filter-salesperson', staff);
+        }
+
+        function updateDropdown(id, items) {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="all">All</option>`;
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                select.appendChild(opt);
+            });
+        }
+
+        function setupFilterListeners() {
+            ['filter-region', 'filter-payment', 'filter-store', 'filter-salesperson'].forEach(id => {
+                document.getElementById(id).addEventListener('change', applyFilters);
+            });
+        }
+
+        function applyFilters() {
+            const region = document.getElementById('filter-region').value;
+            const payment = document.getElementById('filter-payment').value;
+            const store = document.getElementById('filter-store').value;
+            const staff = document.getElementById('filter-salesperson').value;
+
+            filteredData = rawData.filter(d => {
+                return (region === 'all' || d.Region === region) &&
+                       (payment === 'all' || d.PaymentMethod === payment) &&
+                       (store === 'all' || d.StoreLocation === store) &&
+                       (staff === 'all' || d.Salesperson === staff);
+            });
+
+            updateKPIs();
+            updateCharts();
+        }
+
+        function updateKPIs() {
+            const revenue = filteredData.reduce((sum, d) => sum + d.TotalPrice, 0);
+            const orders = filteredData.length;
+            const quantity = filteredData.reduce((sum, d) => sum + d.Quantity, 0);
+            const returnedCount = filteredData.filter(d => d.Returned).length;
+            const returnRate = orders > 0 ? (returnedCount / orders) * 100 : 0;
+
+            // Average Lead Time calculation
+            const leadTimes = filteredData
+                .filter(d => d.OrderDate && d.DeliveryDate)
+                .map(d => (d.DeliveryDate - d.OrderDate) / (1000 * 60 * 60 * 24));
+            const avgLeadTime = leadTimes.length > 0 ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length : 0;
+
+            // Top 3 Stores
+            const storeSales = {};
+            filteredData.forEach(d => {
+                storeSales[d.StoreLocation] = (storeSales[d.StoreLocation] || 0) + d.TotalPrice;
+            });
+            const topStores = Object.entries(storeSales)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            // Update UI
+            document.getElementById('kpi-revenue').textContent = formatCurrency(revenue);
+            document.getElementById('kpi-orders').textContent = formatNumber(orders);
+            document.getElementById('kpi-quantity').textContent = formatNumber(quantity);
+            document.getElementById('kpi-returns').textContent = returnRate.toFixed(1) + '%';
+            document.getElementById('kpi-leadtime').textContent = avgLeadTime.toFixed(1) + ' Days';
+            document.getElementById('kpi-avg-order').textContent = `Avg: ${formatCurrency(orders > 0 ? revenue/orders : 0)}`;
+            document.getElementById('kpi-item-avg').textContent = `Items per order: ${(orders > 0 ? quantity/orders : 0).toFixed(1)}`;
+            document.getElementById('kpi-returned-count').textContent = `${returnedCount} Returns total`;
+
+            // Render Top Stores
+            const storesList = document.getElementById('kpi-top-stores');
+            storesList.innerHTML = topStores.map(([name, val]) => `
+                <div class="top-store-item">
+                    <span>${name || 'Unknown'}</span>
+                    <span style="font-weight:600">${formatCurrency(val)}</span>
+                </div>
+            `).join('') || '<div class="top-store-item"><span>No data</span></div>';
+        }
+
+        function updateCharts() {
+            // 1. Sales Trend
+            const dailySales = {};
+            filteredData.forEach(d => {
+                const dateKey = d.Date ? d.Date.toISOString().split('T')[0] : 'Unknown';
+                dailySales[dateKey] = (dailySales[dateKey] || 0) + d.TotalPrice;
+            });
+            const sortedDates = Object.keys(dailySales).sort();
+            renderChart('trendChart', 'area', {
+                labels: sortedDates,
+                datasets: [{
+                    label: 'Daily Revenue',
+                    data: sortedDates.map(d => dailySales[d]),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            });
+
+            // 2. Revenue by Region
+            const regionSales = {};
+            filteredData.forEach(d => {
+                regionSales[d.Region] = (regionSales[d.Region] || 0) + d.TotalPrice;
+            });
+            renderChart('regionChart', 'bar', {
+                labels: Object.keys(regionSales),
+                datasets: [{
+                    label: 'Revenue',
+                    data: Object.values(regionSales),
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+                }]
+            });
+
+            // 3. Top 10 Products
+            const productSales = {};
+            filteredData.forEach(d => {
+                productSales[d.Product] = (productSales[d.Product] || 0) + d.TotalPrice;
+            });
+            const topProducts = Object.entries(productSales).sort((a,b) => b[1]-a[1]).slice(0, 10);
+            renderChart('productChart', 'bar', {
+                labels: topProducts.map(p => p[0]),
+                datasets: [{
+                    label: 'Revenue',
+                    data: topProducts.map(p => p[1]),
+                    backgroundColor: '#10b981'
+                }],
+                options: { indexAxis: 'y' }
+            });
+
+            // 4. Payment Methods
+            const payMethods = {};
+            filteredData.forEach(d => {
+                payMethods[d.PaymentMethod] = (payMethods[d.PaymentMethod] || 0) + 1;
+            });
+            renderChart('paymentChart', 'doughnut', {
+                labels: Object.keys(payMethods),
+                datasets: [{
+                    data: Object.values(payMethods),
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                    borderWidth: 0
+                }]
+            });
+
+            // 5. Deep Analysis: Price vs Quantity
+            const scatterData = filteredData.slice(0, 100).map(d => ({ x: d.UnitPrice, y: d.Quantity }));
+            renderChart('analysisChart', 'scatter', {
+                datasets: [{
+                    label: 'Price (X) vs Quantity (Y)',
+                    data: scatterData,
+                    backgroundColor: 'rgba(245, 158, 11, 0.6)'
+                }]
+            });
+        }
+
+        function renderChart(id, type, data, options = {}) {
+            if (charts[id]) charts[id].destroy();
+            
+            const ctx = document.getElementById(id).getContext('2d');
+            
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: type !== 'bar' && type !== 'line',
+                        labels: { color: '#94a3b8', font: { size: 11 } }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#f8fafc',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1
+                    }
+                },
+                scales: type === 'doughnut' ? {} : {
+                    x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            };
+
+            charts[id] = new Chart(ctx, {
+                type: type === 'area' ? 'line' : type,
+                data: data,
+                options: Object.assign(baseOptions, options)
+            });
+        }
+
+        // Helpers
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function formatNumber(val) {
+            return new Intl.NumberFormat('en-US').format(val);
+        }
+
+    </script>
+</body>
+</html>

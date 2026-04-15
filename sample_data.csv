@@ -1,0 +1,11 @@
+Date,Region,Product,Quantity,UnitPrice,StoreLocation,Discount,Salesperson,TotalPrice,PaymentMethod,Returned,ShippingCost,OrderDate,DeliveryDate
+2023-10-01,North,Laptop,1,1200,New York,0,John Doe,1200,Credit Card,false,50,2023-10-01,2023-10-03
+2023-10-01,South,Smartphone,2,800,Atlanta,10,Jane Smith,1590,PayPal,false,20,2023-10-01,2023-10-02
+2023-10-02,East,Tablet,3,400,Boston,5,Bob Wilson,1140,Credit Card,true,15,2023-10-02,2023-10-05
+2023-10-02,West,Headphones,5,150,Seattle,0,Alice Brown,750,Debit Card,false,10,2023-10-02,2023-10-03
+2023-10-03,North,Monitor,2,300,Chicago,20,John Doe,580,Cash,false,30,2023-10-03,2023-10-06
+2023-10-03,South,Smartphone,1,800,Atlanta,0,Jane Smith,800,Credit Card,false,20,2023-10-03,2023-10-04
+2023-10-04,East,Laptop,1,1200,New York,0,John Doe,1200,PayPal,false,50,2023-10-04,2023-10-07
+2023-10-04,West,Tablet,2,400,San Francisco,10,Alice Brown,720,Credit Card,false,15,2023-10-04,2023-10-05
+2023-10-05,North,Headphones,10,150,Chicago,0,Bob Wilson,1500,Debit Card,false,10,2023-10-05,2023-10-06
+2023-10-05,South,Monitor,1,300,Miami,5,Jane Smith,285,Cash,true,30,2023-10-05,2023-10-09
