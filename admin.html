@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | InsightPro</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="js/auth-sim.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-primary: #3b82f6;
+            --accent-secondary: #10b981;
+            --accent-tertiary: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.03) 0%, transparent 40%);
+        }
+
+        .admin-layout {
+            min-height: 100vh;
+            /* Grid removed to allow fixed sidebar and margin-left to work reliably */
+        }
+
+        aside {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: fixed;
+            height: 100vh;
+            width: 280px;
+            z-index: 10000;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Hidden state: only a 6px 'silver sliver' is visible as a hint */
+            transform: translateX(calc(-100% + 6px));
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        /* Hover Reveal State */
+        aside:hover, aside.active {
+            transform: translateX(0);
+            box-shadow: 20px 0 50px rgba(0,0,0,0.6);
+            border-right-color: var(--accent-primary);
+        }
+
+        /* Mobile Adjustments for Aside */
+        @media (max-width: 1024px) {
+            aside { 
+                transform: translateX(-100%) !important; 
+                border-right-width: 1px;
+                box-shadow: none;
+            }
+            aside.active { transform: translateX(0) !important; }
+            .admin-layout { grid-template-columns: 1fr; }
+            main { padding-top: 5rem !important; margin-left: 0 !important; }
+        }
+
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0 1.5rem;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 900;
+        }
+
+        @media (max-width: 1024px) { .mobile-header { display: flex; } }
+
+        .menu-toggle {
+            background: none; border: none; color: var(--text-primary); cursor: pointer; padding: 0.5rem;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        main {
+            padding: 2.5rem;
+            max-width: 1400px;
+            width: 100%;
+            margin-left: 0; 
+            padding-left: 2rem; /* Buffer for the 6px sidebar hint */
+        }
+
+        @media (max-width: 1024px) {
+            main { margin-left: 0; padding: 1.5rem; padding-top: 5rem !important; }
+        }
+
+        header {
+            margin-bottom: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title p { color: var(--text-secondary); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        /* User Table */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            min-width: 700px;
+        }
+
+        th {
+            background: rgba(255,255,255,0.02);
+            padding: 1rem 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.95rem;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .role-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-admin { background: rgba(245, 158, 11, 0.1); color: var(--accent-tertiary); }
+        .role-user { background: rgba(16, 185, 129, 0.1); color: var(--accent-secondary); }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-active { color: var(--accent-secondary); }
+        .status-active .status-dot { background: var(--accent-secondary); box-shadow: 0 0 8px var(--accent-secondary); }
+        .status-inactive { color: var(--text-secondary); }
+        .status-inactive .status-dot { background: var(--text-secondary); }
+
+        .action-btns {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.02);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        .btn-delete:hover { border-color: var(--accent-danger); color: var(--accent-danger); }
+        .btn-reset:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+        .empty-state {
+            padding: 4rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .header-title h1 {
+                font-size: 1.5rem;
+            }
+            main {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <div class="logo" style="font-size: 1.2rem;">
+            <i data-lucide="zap" style="width: 20px;"></i>
+            <span>InsightPro</span>
+        </div>
+        <button class="menu-toggle" id="menu-toggle">
+            <i data-lucide="menu"></i>
+        </button>
+    </div>
+
+    <div class="admin-layout">
+        <aside id="sidebar">
+            <div class="logo">
+                <i data-lucide="zap"></i>
+                <span>InsightPro</span>
+            </div>
+
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="nav-item">
+                        <i data-lucide="layout-dashboard"></i> Analytics
+                    </a></li>
+                    <li><a href="#" class="nav-item active">
+                        <i data-lucide="users"></i> User Management
+                    </a></li>
+                    <li><a href="#" class="nav-item">
+                        <i data-lucide="settings"></i> System Settings
+                    </a></li>
+                </ul>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <button onclick="auth.logout()" style="background: none; border: 1px solid var(--glass-border); color: #ef4444; padding: 0.75rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; font-weight: 600;">
+                    <i data-lucide="log-out" style="width: 18px;"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <main>
+            <header>
+                <div class="header-title">
+                    <h1>User Management</h1>
+                    <p>Manage access, roles, and security for the platform.</p>
+                </div>
+            </header>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" id="stat-total">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Administrators</div>
+                    <div class="stat-value" id="stat-admins" style="color: var(--accent-tertiary);">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Standard Users</div>
+                    <div class="stat-value" id="stat-users" style="color: var(--accent-secondary);">0</div>
+                </div>
+            </section>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Role</th>
+                            <th>Joined Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+                <div id="loading-state" class="empty-state">
+                    <p>Loading users...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Security: Redirect if not admin
+        const session = auth.getCurrentUser();
+        if (!session || session.role !== 'admin') {
+            alert("Access Denied: Admin privileges required.");
+            window.location.href = 'index.html';
+        }
+
+        lucide.createIcons();
+
+        // Mobile Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebar.classList.toggle('active');
+                const icon = menuToggle.querySelector('i');
+                if (sidebar.classList.contains('active')) {
+                    icon.setAttribute('data-lucide', 'x');
+                } else {
+                    icon.setAttribute('data-lucide', 'menu');
+                }
+                lucide.createIcons();
+            });
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024 && sidebar && sidebar.classList.contains('active') && !sidebar.contains(e.target) && e.target !== menuToggle) {
+                sidebar.classList.remove('active');
+                if (menuToggle) menuToggle.querySelector('i').setAttribute('data-lucide', 'menu');
+                lucide.createIcons();
+            }
+        });
+
+        async function loadUsers() {
+            try {
+                const users = await auth.getAllUsers();
+                renderUsers(users);
+                updateStats(users);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loading-state').innerHTML = `<p style="color: #ef4444;">${err.message}</p>`;
+            }
+        }
+
+        // Polling for real-time status updates
+        setInterval(loadUsers, 5000);
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('user-table-body');
+            const loader = document.getElementById('loading-state');
+            
+            if (users.length === 0) {
+                loader.innerHTML = '<p>No users found in the system.</p>';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            loader.style.display = 'none';
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">${user.username}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); font-family: monospace;">ID: ${user.id}</div>
+                    </td>
+                    <td>
+                        <div class="status-badge ${user.isOnline ? 'status-active' : 'status-inactive'}">
+                            <span class="status-dot"></span>
+                            ${user.isOnline ? 'Active' : 'Inactive'}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-user'}">${user.role}</span>
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                        ${new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button onclick="handleReset('${user.id}')" class="btn-icon btn-reset" title="Reset Password">
+                                <i data-lucide="key-round" style="width: 16px;"></i>
+                            </button>
+                            <button onclick="handleDelete('${user.id}', '${user.username}')" class="btn-icon btn-delete" title="Delete User">
+                                <i data-lucide="trash-2" style="width: 16px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateStats(users) {
+            document.getElementById('stat-total').textContent = users.length;
+            document.getElementById('stat-admins').textContent = users.filter(u => u.role === 'admin').length;
+            document.getElementById('stat-users').textContent = users.filter(u => u.role !== 'admin').length;
+        }
+
+        async function handleDelete(id, name) {
+            if (id === session.id) {
+                alert("You cannot delete your own account.");
+                return;
+            }
+            if (confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) {
+                await auth.deleteUser(id);
+                loadUsers();
+            }
+        }
+
+        async function handleReset(id) {
+            const newPass = prompt("Enter a new password (leave blank for 'Reset123!'):");
+            if (newPass === null) return; // Cancelled
+
+            try {
+                const res = await auth.resetPassword(id, newPass || 'Reset123!');
+                alert(res.message);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>
