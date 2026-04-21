@@ -6,7 +6,7 @@
     <title>Admin Portal | InsightPro</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="js/auth-sim.js"></script>
+    <script type="module" src="js/auth.js"></script>
     <style>
         :root {
             --bg-dark: #0a0c10;
@@ -398,13 +398,20 @@
         </main>
     </div>
 
-    <script>
+    <script type="module">
         // Security: Redirect if not admin
-        const session = auth.getCurrentUser();
-        if (!session || session.role !== 'admin') {
-            alert("Access Denied: Admin privileges required.");
-            window.location.href = 'index.html';
+        async function runSecurityCheck() {
+            const session = await window.auth.checkAuth();
+            if (!session || session.role !== 'admin') {
+                alert("Access Denied: Admin privileges required.");
+                window.location.href = 'index.html';
+            } else {
+                window.adminSession = session;
+                loadUsers();
+            }
         }
+        
+        runSecurityCheck();
 
         lucide.createIcons();
 
@@ -436,7 +443,7 @@
 
         async function loadUsers() {
             try {
-                const users = await auth.getAllUsers();
+                const users = await window.auth.getAllUsers();
                 renderUsers(users);
                 updateStats(users);
             } catch (err) {
@@ -446,13 +453,13 @@
         }
 
         // Polling for real-time status updates
-        setInterval(loadUsers, 5000);
+        setInterval(loadUsers, 10000);
 
         function renderUsers(users) {
             const tbody = document.getElementById('user-table-body');
             const loader = document.getElementById('loading-state');
             
-            if (users.length === 0) {
+            if (!users || users.length === 0) {
                 loader.innerHTML = '<p>No users found in the system.</p>';
                 tbody.innerHTML = '';
                 return;
@@ -462,7 +469,7 @@
             tbody.innerHTML = users.map(user => `
                 <tr>
                     <td>
-                        <div style="font-weight: 600;">${user.username}</div>
+                        <div style="font-weight: 600;">${user.username || user.email}</div>
                         <div style="font-size: 0.7rem; color: var(--text-secondary); font-family: monospace;">ID: ${user.id}</div>
                     </td>
                     <td>
@@ -475,14 +482,11 @@
                         <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-user'}">${user.role}</span>
                     </td>
                     <td style="color: var(--text-secondary); font-size: 0.85rem;">
-                        ${new Date(user.createdAt).toLocaleDateString()}
+                        ${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
                     <td>
                         <div class="action-btns">
-                            <button onclick="handleReset('${user.id}')" class="btn-icon btn-reset" title="Reset Password">
-                                <i data-lucide="key-round" style="width: 16px;"></i>
-                            </button>
-                            <button onclick="handleDelete('${user.id}', '${user.username}')" class="btn-icon btn-delete" title="Delete User">
+                            <button onclick="handleDelete('${user.id}', '${user.username || user.email}')" class="btn-icon btn-delete" title="Delete User">
                                 <i data-lucide="trash-2" style="width: 16px;"></i>
                             </button>
                         </div>
@@ -493,35 +497,22 @@
         }
 
         function updateStats(users) {
+            if (!users) return;
             document.getElementById('stat-total').textContent = users.length;
             document.getElementById('stat-admins').textContent = users.filter(u => u.role === 'admin').length;
             document.getElementById('stat-users').textContent = users.filter(u => u.role !== 'admin').length;
         }
 
-        async function handleDelete(id, name) {
-            if (id === session.id) {
+        window.handleDelete = async function(id, name) {
+            if (id === window.adminSession.id) {
                 alert("You cannot delete your own account.");
                 return;
             }
-            if (confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) {
-                await auth.deleteUser(id);
+            if (confirm(`Are you sure you want to delete user "${name}"? This action removes their profile from the database.`)) {
+                await window.auth.deleteUser(id);
                 loadUsers();
             }
         }
-
-        async function handleReset(id) {
-            const newPass = prompt("Enter a new password (leave blank for 'Reset123!'):");
-            if (newPass === null) return; // Cancelled
-
-            try {
-                const res = await auth.resetPassword(id, newPass || 'Reset123!');
-                alert(res.message);
-            } catch (err) {
-                alert(err.message);
-            }
-        }
-
-        loadUsers();
     </script>
 </body>
 </html>

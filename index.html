@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="js/auth-sim.js"></script>
+    <script type="module" src="js/auth.js"></script>
     
     <style>
         :root {
@@ -611,13 +611,17 @@
         </section>
     </main>
 
-    <script>
+    <script type="module">
         // Auth Check
-        const currentUser = auth.checkAuth();
-        if (!currentUser) {
-            // Script stops here if not authenticated due to redirect in checkAuth
-            throw new Error("Redirecting to login...");
+        async function runAuthCheck() {
+            const user = await window.auth.checkAuth();
+            if (user) {
+                initUserProfile(user);
+                // Continue with other initializations if needed
+            }
         }
+        
+        runAuthCheck();
 
         // Global State
         let rawData = [];
@@ -628,18 +632,17 @@
         lucide.createIcons();
 
         // Initialize User Profile in Sidebar
-        function initUserProfile() {
-            if (currentUser) {
-                document.getElementById('user-display-name').textContent = currentUser.username;
-                document.getElementById('user-initials').textContent = currentUser.username.substring(0, 2).toUpperCase();
-                document.getElementById('user-role-badge').textContent = currentUser.role;
+        function initUserProfile(user) {
+            if (user) {
+                document.getElementById('user-display-name').textContent = user.username;
+                document.getElementById('user-initials').textContent = user.username.substring(0, 2).toUpperCase();
+                document.getElementById('user-role-badge').textContent = user.role;
                 
-                if (currentUser.role === 'admin') {
+                if (user.role === 'admin') {
                     document.getElementById('admin-link-container').style.display = 'block';
                 }
             }
         }
-        initUserProfile();
 
         // Mobile Menu Toggle
         const menuToggle = document.getElementById('menu-toggle');

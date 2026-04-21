@@ -6,7 +6,7 @@
     <title>Login | InsightPro Dashboard</title>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="js/auth-sim.js"></script>
+    <script type="module" src="js/auth.js"></script>
     <style>
         :root {
             --bg-dark: #0a0c10;
@@ -208,10 +208,10 @@
 
         <form id="login-form">
             <div class="input-group">
-                <label for="username">Username</label>
+                <label for="username">Email Address</label>
                 <div class="input-wrapper">
-                    <i data-lucide="user"></i>
-                    <input type="text" id="username" placeholder="Enter your username" required>
+                    <i data-lucide="mail"></i>
+                    <input type="email" id="username" placeholder="name@company.com" required>
                 </div>
             </div>
 
@@ -239,13 +239,13 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         lucide.createIcons();
 
         // Admin Shortcut Logic
-        function handleAdminShortcut() {
-            document.getElementById('username').value = 'admin';
-            document.getElementById('password').value = 'admin';
+        async function handleAdminShortcut() {
+            document.getElementById('username').value = 'admin@insightpro.local';
+            document.getElementById('password').value = 'admin123';
             // Set a flag to redirect to admin.html
             sessionStorage.setItem('redirect_after_login', 'admin.html');
             document.getElementById('login-form').dispatchEvent(new Event('submit'));
@@ -255,12 +255,6 @@
             e.preventDefault();
             handleAdminShortcut();
         });
-
-        // Check for auto-login parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('auto') === 'admin') {
-            window.addEventListener('load', () => setTimeout(handleAdminShortcut, 500));
-        }
 
         const form = document.getElementById('login-form');
         const errorBox = document.getElementById('error-box');
@@ -272,7 +266,7 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('username').value;
+            const email = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
             // Reset UI
@@ -282,7 +276,8 @@
             submitBtn.disabled = true;
 
             try {
-                await auth.login(username, password);
+                // Ensure the auth object is available (it's attached to window.auth in auth.js)
+                await window.auth.login(email, password);
                 const redirectPath = sessionStorage.getItem('redirect_after_login') || 'index.html';
                 sessionStorage.removeItem('redirect_after_login');
                 window.location.href = redirectPath;
@@ -295,10 +290,13 @@
             }
         });
 
-        // If already logged in, redirect
-        if (auth.getCurrentUser()) {
-            window.location.href = 'index.html';
-        }
+        // Check auth status on load
+        window.addEventListener('load', async () => {
+            const user = await window.auth.checkAuth(false);
+            if (user) {
+                window.location.href = 'index.html';
+            }
+        });
     </script>
 </body>
 </html>
