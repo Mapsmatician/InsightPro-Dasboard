@@ -78,11 +78,15 @@ class FirebaseAuth {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             const userData = userDoc.data();
 
-            // Update online status
-            await updateDoc(doc(db, "users", user.uid), {
+            // Ensure user profile exists and update status
+            await setDoc(doc(db, "users", user.uid), {
                 isOnline: true,
-                lastActive: new Date().toISOString()
-            });
+                lastActive: new Date().toISOString(),
+                // Fallback fields in case the doc didn't exist
+                email: email,
+                username: email.split('@')[0],
+                role: userData?.role || 'user'
+            }, { merge: true });
 
             this.session = {
                 id: user.uid,
